@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, model
-from app.db.session import Base, engine
+from routes import auth
+from db.base_class import Base
+from db.session import engine
 
+Base.metadata.drop_all(bind=engine)  # Drops existing tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Capstone Backend")
@@ -16,7 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(model.router, prefix="/model", tags=["model"])
+
 
 @app.get("/")
 def root():
