@@ -4,8 +4,8 @@ import time
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer
 
-from app.db.session import SessionLocal
-from app.db.models import User
+from db.session import SessionLocal
+from db.models import User
 
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 auth_scheme = HTTPBearer()
