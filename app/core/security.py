@@ -1,24 +1,58 @@
 from passlib.context import CryptContext
 from jose import jwt
-from datetime import datetime, timedelta
-from core.config import settings
-import bcrypt
-import hashlib
+import time
+from fastapi import HTTPException, Depends
+from fastapi.security import HTTPBearer
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.db.session import SessionLocal
+from app.db.models import User
 
-def hash_password(password: str) -> str:
-    # Pre-hash to handle passwords longer than 72 bytes
-    password_hashed = hashlib.sha256(password.encode("utf-8")).digest()
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password_hashed, salt).decode('utf-8')
+pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+auth_scheme = HTTPBearer()
 
-def verify_password(password: str, hashed: str) -> bool:
-    password_hashed = hashlib.sha256(password.encode("utf-8")).digest()
-    return bcrypt.checkpw(password_hashed, hashed.encode('utf-8'))
+SECRET = "dev-secret"  # move to .env later
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=30))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def _check_password_length(password: str):
+    if not isinstance(password, str):
+        raise HTTPException(status_code=400, detail="password must be a string")
+    b = password.encode("utf-8")
+    if len(b) > 72:
+        # bcrypt has a 72-byte input limitation; ask the caller to truncate or choose a shorter password
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "password too long: bcrypt limits passwords to 72 bytes when UTF-8 encoded. "
+                "Please truncate the password to 72 bytes (e.g. password[:72]) or choose a shorter password."
+            ),
+        )
+
+
+def hash_password(password: str):
+    _check_password_length(password)
+    return pwd.hash(password)
+
+
+def verify_password(plain: str, hashed: str):
+    try:
+        _check_password_length(plain)
+    except HTTPException:
+        # treat overly-long passwords as invalid login (do not reveal details here)
+        return False
+    return pwd.verify(plain, hashed)
+
+def create_token(user):
+    payload = {
+        "sub": user.id,
+        "username": user.username,
+        "exp": int(time.time()) + 3600
+    }
+    return jwt.encode(payload, SECRET, algorithm="HS256")
+
+def get_current_user(credentials = Depends(auth_scheme)):
+    token = credentials.credentials
+    try:
+        data = jwt.decode(token, SECRET, algorithms=["HS256"])
+        return data
+    except:
+        raise HTTPException(401, "invalid token")

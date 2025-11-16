@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from routes import auth, report
 from db.base_class import Base
 from db.session import engine
+from app.routes import auth
+from app.core.security import get_current_user
 
 Base.metadata.drop_all(bind=engine)  # Drops existing tables
 Base.metadata.create_all(bind=engine)
@@ -17,10 +19,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(report.router, prefix="/report", tags=["report"])
+app.include_router(report.router)
+app.include_router(auth.router)
 
 
 @app.get("/")
 def root():
     return {"status": "F.R.A.U.D.S backend running"}
+
+@app.get("/secure")
+def secure_route(user = Depends(get_current_user)):
+    return {"message": "ok", "user": user["username"]}
