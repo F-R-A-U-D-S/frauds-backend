@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 from services import report_service
 
-router = APIRouter()
+router = APIRouter(prefix="/report", tags=["report"])
 service = report_service
 
 @router.get("/csv/{report_id}")
