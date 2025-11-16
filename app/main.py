@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import auth
+from routes import auth, report
 from db.base_class import Base
 from db.session import engine
 
@@ -18,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(report.router, prefix="/report", tags=["report"])
 
 
 @app.get("/")
