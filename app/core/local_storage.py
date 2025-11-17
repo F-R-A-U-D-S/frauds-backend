@@ -1,0 +1,106 @@
+# app/core/local_storage.py
+
+import os
+import uuid
+from cryptography.fernet import Fernet
+
+BASE_DIR = "storage"
+os.makedirs(f"{BASE_DIR}/incoming", exist_ok=True)
+os.makedirs(f"{BASE_DIR}/flagged", exist_ok=True)
+
+
+def generate_key():
+    return Fernet.generate_key()
+
+
+def store_encrypted(file_obj, prefix="incoming"):
+    """
+    Encrypt a file using a unique per-file key.
+    Store both the encrypted file and its key.
+    """
+    file_id = str(uuid.uuid4())
+    enc_key = generate_key()
+    fernet = Fernet(enc_key)
+
+    # Paths
+    enc_path = f"{BASE_DIR}/{prefix}/{file_id}.csv.enc"
+    key_path = f"{BASE_DIR}/{prefix}/{file_id}.key"
+
+    # Encrypt data
+    data = file_obj.read()
+    encrypted = fernet.encrypt(data)
+
+    # Save encrypted file
+    with open(enc_path, "wb") as f:
+        f.write(encrypted)
+
+    # Save key
+    with open(key_path, "wb") as f:
+        f.write(enc_key)
+
+    # Return both pieces
+    return f"{prefix}/{file_id}.csv.enc"
+
+
+def _get_key_path(enc_key: str):
+    key_base = enc_key.replace(".csv.enc", ".key")
+    return f"{BASE_DIR}/{key_base}"
+
+
+def load_decrypted(enc_key: str):
+    """
+    Decrypt a per-file encrypted blob using its matching key file.
+    """
+    enc_path = f"{BASE_DIR}/{enc_key}"
+    key_path = _get_key_path(enc_key)
+
+    # Load key
+    with open(key_path, "rb") as f:
+        key = f.read()
+    fernet = Fernet(key)
+
+    # Load encrypted data
+    with open(enc_path, "rb") as f:
+        encrypted = f.read()
+
+    # Decrypt
+    return fernet.decrypt(encrypted)
+
+
+def write_encrypted_output(data: bytes, prefix="flagged"):
+    """
+    Encrypt ML output using a *new* per-file key.
+    Returns <prefix>/<uuid>.csv.enc
+    """
+    file_id = str(uuid.uuid4())
+    enc_key = generate_key()
+    fernet = Fernet(enc_key)
+
+    enc_path = f"{BASE_DIR}/{prefix}/{file_id}.csv.enc"
+    key_path = f"{BASE_DIR}/{prefix}/{file_id}.key"
+
+    encrypted = fernet.encrypt(data)
+
+    # Save encrypted output
+    with open(enc_path, "wb") as f:
+        f.write(encrypted)
+
+    # Save the per-file key
+    with open(key_path, "wb") as f:
+        f.write(enc_key)
+
+    return f"{prefix}/{file_id}.csv.enc"
+
+
+def delete_key(enc_key: str):
+    """
+    Delete both the encrypted file and key file.
+    """
+    enc_path = f"{BASE_DIR}/{enc_key}"
+    key_path = _get_key_path(enc_key)
+
+    if os.path.exists(enc_path):
+        os.remove(enc_path)
+
+    if os.path.exists(key_path):
+        os.remove(key_path)

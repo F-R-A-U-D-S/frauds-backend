@@ -1,6 +1,6 @@
 # report generation + encryption
 from fastapi import APIRouter
-from services import report_service
+from app.services import report_service
 
 router = APIRouter(prefix="/report", tags=["report"])
 service = report_service

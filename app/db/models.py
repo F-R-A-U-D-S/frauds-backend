@@ -2,9 +2,9 @@ from sqlalchemy import Column, String, DateTime
 import uuid
 import datetime
 
-from db.base_class import Base
+from app.db.base_class import Base
 
-
+# user model for authentication
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

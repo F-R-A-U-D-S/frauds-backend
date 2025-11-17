@@ -1,10 +1,9 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from routes import auth, report
-from db.base_class import Base
-from db.session import engine
-from routes import auth
-from core.security import get_current_user
+from app.routes import auth, report, predict, process, upload
+from app.db.base_class import Base
+from app.db.session import engine
+from app.core.security import get_current_user
 
 Base.metadata.drop_all(bind=engine)  # Drops existing tables
 Base.metadata.create_all(bind=engine)
@@ -21,6 +20,7 @@ app.add_middleware(
 
 app.include_router(report.router)
 app.include_router(auth.router)
+app.include_router(predict.router)
 
 
 @app.get("/")
