@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer
 from app.db.session import SessionLocal
 from app.db.models import User
 
-pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd = CryptContext(schemes=["argon2"], deprecated="auto")
 auth_scheme = HTTPBearer()
 
 SECRET = "dev-secret"  # move to .env later
@@ -29,16 +29,10 @@ def _check_password_length(password: str):
 
 
 def hash_password(password: str):
-    _check_password_length(password)
     return pwd.hash(password)
 
 
 def verify_password(plain: str, hashed: str):
-    try:
-        _check_password_length(plain)
-    except HTTPException:
-        # treat overly-long passwords as invalid login (do not reveal details here)
-        return False
     return pwd.verify(plain, hashed)
 
 def create_token(user):
