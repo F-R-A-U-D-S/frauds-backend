@@ -1,5 +1,6 @@
 import pandas as pd
 import io
+import os
 import joblib
 from fastapi import HTTPException
 
@@ -10,6 +11,20 @@ from app.core.local_storage import (
 )
 
 model = joblib.load("models/fraud_model.pkl")
+
+def validate_file_extension(filename: str):
+    """
+    Validate uploaded file extension.
+    Raise HTTPException if invalid.
+    """
+    allowed_extensions = [".csv",".xls",".xlsx"]
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file extension '{ext}'. Please Upload a {allowed_extensions} File"
+        )
+    return 'File Extension Valid. Uploaded Successfully.'
 
 
 def validate_uploaded_df(df: pd.DataFrame):

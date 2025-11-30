@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(report.router)
 app.include_router(auth.router)
 app.include_router(predict.router)
+app.include_router(upload.router)
 
 
 @app.get("/")
