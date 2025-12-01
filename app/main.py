@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, report, predict, process, upload
+from app.routes import auth, report, predict, process, upload, schema
 from app.db.base_class import Base
 from app.db.session import engine
 from app.core.security import get_current_user
@@ -24,6 +24,7 @@ app.include_router(report.router)
 app.include_router(auth.router)
 app.include_router(predict.router)
 app.include_router(upload.router)
+app.include_router(schema.router)
 
 
 @app.get("/")
