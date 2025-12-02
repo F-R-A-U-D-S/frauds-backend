@@ -4,6 +4,7 @@ import os
 import re
 import joblib
 from fastapi import HTTPException
+from app.services.data_service import clean_uploaded_df
 
 from app.core.local_storage import (
     load_decrypted,
@@ -14,15 +15,22 @@ from app.core.local_storage import (
 model = joblib.load("models/fraud_model.pkl")
 
 def process_local_and_predict(input_key: str):
+
+    print(f"[DEBUG] process_local_and_predict received: {input_key}")
+
+    
+
     # decrypt uploaded CSV into memory
     data = load_decrypted(input_key)
+    print(f"[DEBUG] Decryption successful, loading CSV into DataFrame")
+    print(f"[DEBUG] Data size (bytes): {len(data)}")
+
     df = pd.read_csv(io.BytesIO(data))
+    print(f"[DEBUG] CSV loaded into DataFrame with shape: {df.shape}")
 
     # delete encrypted uploaded file immediately
     delete_key(input_key)
-
-    # VALIDATE
-    clean_uploaded_df(df)
+    print(f"[DEBUG] Deleted input encrypted file and key: {input_key}")
 
     # safe conversion
     df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -66,4 +74,5 @@ def process_local_and_predict(input_key: str):
     out_bytes = out_buf.getvalue().encode()
 
     output_key = write_encrypted_output(out_bytes, prefix="flagged")
+    print(f"[DEBUG] Prediction complete, output stored with key: {output_key}")
     return output_key

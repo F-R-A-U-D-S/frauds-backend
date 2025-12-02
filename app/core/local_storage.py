@@ -26,6 +26,10 @@ def store_encrypted(file_obj, prefix="incoming"):
     enc_path = f"{BASE_DIR}/{prefix}/{file_id}.csv.enc"
     key_path = f"{BASE_DIR}/{prefix}/{file_id}.key"
 
+    print(f"[DEBUG] store_encrypted file_id: {file_id}")
+    print(f"[DEBUG] Storing encrypted file at: {enc_path}")
+    print(f"[DEBUG] Storing key file at: {key_path}")
+
     # Encrypt data
     data = file_obj.read()
     encrypted = fernet.encrypt(data)
@@ -37,6 +41,9 @@ def store_encrypted(file_obj, prefix="incoming"):
     # Save key
     with open(key_path, "wb") as f:
         f.write(enc_key)
+
+    print(f"[DEBUG] Encryption and storage complete.")
+    print(f"[DEBUG] Returning key: {prefix}/{file_id}.csv.enc")
 
     # Return both pieces
     return f"{prefix}/{file_id}.csv.enc"
@@ -51,8 +58,19 @@ def load_decrypted(enc_key: str):
     """
     Decrypt a per-file encrypted blob using its matching key file.
     """
+    print(f"[DEBUG] load_decrypted received: {enc_key}")
+
     enc_path = f"{BASE_DIR}/{enc_key}"
     key_path = _get_key_path(enc_key)
+
+    print(f"[DEBUG] Encrypted path: {enc_path}")
+    print(f"[DEBUG] Key path: {key_path}")  
+
+    if not os.path.exists(enc_path):
+        raise FileNotFoundError(f"Encrypted file not found at: {enc_path}")
+
+    if not os.path.exists(key_path):
+        raise FileNotFoundError(f"Key file not found at: {key_path}")
 
     # Load key
     with open(key_path, "rb") as f:
@@ -62,6 +80,8 @@ def load_decrypted(enc_key: str):
     # Load encrypted data
     with open(enc_path, "rb") as f:
         encrypted = f.read()
+
+    print(f"[DEBUG] Decryption OK — returning raw bytes")
 
     # Decrypt
     return fernet.decrypt(encrypted)

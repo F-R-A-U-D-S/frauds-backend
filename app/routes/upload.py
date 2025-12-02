@@ -1,14 +1,20 @@
 # file uploads + S3 storage
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from app.services import model_service
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from app.services import data_service
+from app.core.local_storage import store_encrypted
 import pandas as pd
 import io
+from app.core.security import get_current_user
+
 router = APIRouter(prefix="/upload", tags=["upload"])
+
 service = data_service
+
 @router.post("/file/")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), user=Depends(get_current_user)):
+
+
     # Validate file extension
     service.validate_file_extension(file.filename)
 
@@ -31,12 +37,15 @@ async def upload_file(file: UploadFile = File(...)):
     # Validate Required Columns
     service.validate_required_columns(df)
 
-    # # Full DF validation
-    # service.validate_uploaded_df(df)
+    result_key = store_encrypted(io.BytesIO(content), prefix="incoming")
+
+    # Clean data
+    service.clean_uploaded_df(df)
     
     return {
         "filename": file.filename,
         "filesize": f"{len(content) / (1024*1024):.2f} MB",
         "Inferred Columns": service.validate_required_columns(df),
-        "message": "File uploaded successfully."
+        "message": "File uploaded successfully.",
+        "result_key": result_key
         }
