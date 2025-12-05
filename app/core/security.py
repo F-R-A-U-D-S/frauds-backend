@@ -39,6 +39,7 @@ def create_token(user):
     payload = {
         "sub": user.id,
         "username": user.username,
+        "is_admin": user.is_admin,
         "exp": int(time.time()) + 3600
     }
     return jwt.encode(payload, SECRET, algorithm="HS256")
@@ -50,3 +51,8 @@ def get_current_user(credentials = Depends(auth_scheme)):
         return data
     except:
         raise HTTPException(401, "invalid token")
+
+def require_admin(user = Depends(get_current_user)):
+    if not user.get("is_admin", False):
+        raise HTTPException(status_code=403, detail="admin access required")
+    return user

@@ -32,4 +32,4 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="invalid login")
 
     token = create_token(user)
-    return {"access_token": token}
+    return {"access_token": token, "is_admin": user.is_admin}
