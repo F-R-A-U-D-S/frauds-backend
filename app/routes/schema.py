@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Dict
+from app.core.security import get_current_user
 from app.services.schema_service import save_schema, load_schema
 from fastapi import HTTPException
 
@@ -12,7 +13,7 @@ class SchemaMapping(BaseModel):
     mapping: Dict[str, str]
 
 @router.post("/save")
-async def save_schema_api(data: SchemaMapping):
+async def save_schema_api(data: SchemaMapping, user=Depends(get_current_user)):
     save_schema(data.bank_name, data.mapping)
     return {
         "message": f"Default schema saved for {data.bank_name}",

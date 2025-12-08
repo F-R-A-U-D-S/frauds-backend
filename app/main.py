@@ -8,7 +8,7 @@ from app.core.security import get_current_user
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Capstone Backend")
+app = FastAPI(title="F.R.A.U.D.S Backend API")
 
 app.add_middleware(
     CORSMiddleware,
