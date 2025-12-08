@@ -4,7 +4,7 @@ import os
 import re
 import joblib
 from fastapi import HTTPException
-from app.services.data_service import clean_uploaded_df
+
 
 from app.core.local_storage import (
     load_decrypted,

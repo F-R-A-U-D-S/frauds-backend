@@ -1,28 +1,32 @@
 # file uploads + S3 storage
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from app.services import data_service
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
+from app.services import upload_service
+from app.services import preprocess_service
 from app.core.local_storage import store_encrypted
 import pandas as pd
 import io
 from app.core.security import get_current_user
 
+
+
 router = APIRouter(prefix="/upload", tags=["upload"])
 
-service = data_service
+validate = upload_service
+clean = preprocess_service
 
 @router.post("/file/")
-async def upload_file(file: UploadFile = File(...), user=Depends(get_current_user)):
+async def upload_file(bank_name: str = Form(...), file: UploadFile = File(...), user=Depends(get_current_user)):
 
 
     # Validate file extension
-    service.validate_file_extension(file.filename)
+    validate.validate_file_extension(file.filename)
 
     # Read file content
     content = await file.read()
 
     # Validate file size
-    service.validate_file_size(len(content))
+    validate.validate_file_size(len(content))
 
      # Reject empty file
     if len(content) == 0:
@@ -33,19 +37,29 @@ async def upload_file(file: UploadFile = File(...), user=Depends(get_current_use
         df = pd.read_csv(io.BytesIO(content))
     except Exception:
         raise HTTPException(status_code=400, detail="Unable to parse CSV file.")
+    
+    # Validate columns against schema if exists
+    normalized_df = validate.validate_schema_columns(df, bank_name)
 
-    # Validate Required Columns
-    service.validate_required_columns(df)
+    #Preprocess / Clean Data
+    cleaned_df, log = clean.preprocess_dataframe(normalized_df)
 
-    result_key = store_encrypted(io.BytesIO(content), prefix="incoming")
+    # Convert cleaned DataFrame to CSV bytes
+    csv_bytes = io.BytesIO()
+    cleaned_df.to_csv(csv_bytes, index=False)
+    csv_bytes.seek(0)
 
-    # Clean data
-    service.clean_uploaded_df(df)
+    # Store cleaned file encrypted
+    result_key = store_encrypted(csv_bytes, prefix="incoming")
+
+    
     
     return {
         "filename": file.filename,
         "filesize": f"{len(content) / (1024*1024):.2f} MB",
-        "Inferred Columns": service.validate_required_columns(df),
         "message": "File uploaded successfully.",
-        "result_key": result_key
+        "result_key": result_key,
+        "normalized_columns": list(normalized_df.columns),
+        "cleaned_rows": len(cleaned_df) ,
+        "log": log
         }

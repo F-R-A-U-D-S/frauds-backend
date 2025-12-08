@@ -1,0 +1,26 @@
+{
+    "RBC": {
+        "is_default": true,
+        "mapping": {
+            "timestamp": "time ",
+            "merchant": "vendor",
+            "amount": "money ",
+            "mcc": "mc",
+            "city": "province",
+            "country": "countries",
+            "channel": "source"
+        }
+    },
+    "Scotiabank": {
+        "is_default": true,
+        "mapping": {
+            "timestamp": "timestamp",
+            "merchant": "merchant",
+            "amount": "amount",
+            "mcc": "mcc",
+            "city": "city",
+            "country": "country",
+            "channel": "channel"
+        }
+    }
+}
