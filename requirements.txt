@@ -9,6 +9,8 @@ cryptography==43.0.3
 # --- Database & ORM ---
 sqlalchemy==2.0.25
 psycopg2-binary==2.9.9  # PostgreSQL driver
+sqlmodel>=0.0.14
+
 
 # --- Authentication & Security ---
 python-jose==3.3.0

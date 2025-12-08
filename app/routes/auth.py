@@ -15,7 +15,15 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == payload.username).first():
         raise HTTPException(status_code=400, detail="username already exists")
 
-    user = User(username=payload.username, password_hash=hash_password(payload.password))
+    user = User(
+        employee_number=payload.employee_number,
+        name=payload.name,
+        username=payload.username,
+        password_hash=hash_password(payload.password),
+        title=payload.title,
+        is_admin=False  # or payload.is_admin if needed
+    )
+
     db.add(user)
     db.commit()
     db.refresh(user)
