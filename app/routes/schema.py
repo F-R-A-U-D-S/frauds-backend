@@ -20,7 +20,7 @@ async def save_schema_api(data: SchemaMapping, user=Depends(get_current_user)):
          "data": data.mapping}
 
 @router.get("/load/{bank_name}")
-async def load_schema_api(bank_name: str):
+async def load_schema_api(bank_name: str, user=Depends(get_current_user)):
     schema = load_schema(bank_name)
     if not schema:
         raise HTTPException(status_code=404, detail=f"No schema found for bank: {bank_name}")
