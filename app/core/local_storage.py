@@ -1,126 +1,130 @@
-# app/core/local_storage.py
-
 import os
-import uuid
+import io
+import boto3
 from cryptography.fernet import Fernet
+from app.core.config import settings
 
-BASE_DIR = "storage"
-os.makedirs(f"{BASE_DIR}/incoming", exist_ok=True)
-os.makedirs(f"{BASE_DIR}/flagged", exist_ok=True)
+s3 = boto3.client("s3", region_name=settings.AWS_REGION)
 
-
-def generate_key():
+# Fernet
+def generate_fernet_key():
     return Fernet.generate_key()
 
+def get_fernet(key: bytes):
+    return Fernet(key)
 
-def store_encrypted(file_obj, prefix="incoming"):
+
+
+# Upload (Fernet encrypted to S3 SSE-KMS)
+def store_encrypted(file_bytes_io, prefix="incoming"):
     """
-    Encrypt a file using a unique per-file key.
-    Store both the encrypted file and its key.
+    Encrypt file with Fernet in memory.
+    Upload encrypted payload to S3 with SSE-KMS.
+    Upload Fernet key separately (also SSE-KMS).
     """
-    file_id = str(uuid.uuid4())
-    enc_key = generate_key()
-    fernet = Fernet(enc_key)
 
-    # Paths
-    enc_path = f"{BASE_DIR}/{prefix}/{file_id}.csv.enc"
-    key_path = f"{BASE_DIR}/{prefix}/{file_id}.key"
+    # Generate Fernet key
+    key = generate_fernet_key()
+    f = get_fernet(key)
 
-    print(f"[DEBUG] store_encrypted file_id: {file_id}")
-    print(f"[DEBUG] Storing encrypted file at: {enc_path}")
-    print(f"[DEBUG] Storing key file at: {key_path}")
+    # Encrypt uploaded content in memory
+    encrypted_bytes = f.encrypt(file_bytes_io.getvalue())
 
-    # Encrypt data
-    data = file_obj.read()
-    encrypted = fernet.encrypt(data)
+    # Random filename
+    s3_key = f"{prefix}/{os.urandom(16).hex()}.bin"
+    key_s3_key = f"{s3_key}.key"
 
-    # Save encrypted file
-    with open(enc_path, "wb") as f:
-        f.write(encrypted)
+    # Upload encrypted bytes to S3 using SSE-KMS
+    s3.upload_fileobj(
+        Fileobj=io.BytesIO(encrypted_bytes),
+        Bucket=settings.S3_BUCKET,
+        Key=s3_key,
+        ExtraArgs={
+            "ServerSideEncryption": "aws:kms",
+            "SSEKMSKeyId": settings.KMS_KEY_ID
+        }
+    )
 
-    # Save key
-    with open(key_path, "wb") as f:
-        f.write(enc_key)
+    # Upload Fernet key separately (also SSE-KMS)
+    s3.upload_fileobj(
+        Fileobj=io.BytesIO(key),
+        Bucket=settings.S3_BUCKET,
+        Key=key_s3_key,
+        ExtraArgs={
+            "ServerSideEncryption": "aws:kms",
+            "SSEKMSKeyId": settings.KMS_KEY_ID
+        }
+    )
 
-    print(f"[DEBUG] Encryption and storage complete.")
-    print(f"[DEBUG] Returning key: {prefix}/{file_id}.csv.enc")
+    return s3_key
 
-    # Return both pieces
-    return f"{prefix}/{file_id}.csv.enc"
-
-
-def _get_key_path(enc_key: str):
-    key_base = enc_key.replace(".csv.enc", ".key")
-    return f"{BASE_DIR}/{key_base}"
-
-
-def load_decrypted(enc_key: str):
+# Download (S3 encrypted → Fernet decrypt in memory)
+def load_decrypted(s3_key: str) -> bytes:
     """
-    Decrypt a per-file encrypted blob using its matching key file.
+    Downloads encrypted bytes + Fernet key from S3.
+    SSE-KMS decrypts automatically on download.
+    Fernet decrypts locally in memory.
     """
-    print(f"[DEBUG] load_decrypted received: {enc_key}")
 
-    enc_path = f"{BASE_DIR}/{enc_key}"
-    key_path = _get_key_path(enc_key)
+    # Download encrypted file body
+    encrypted_buf = io.BytesIO()
+    s3.download_fileobj(
+        Bucket=settings.S3_BUCKET,
+        Key=s3_key,
+        Fileobj=encrypted_buf
+    )
+    encrypted_buf.seek(0)
+    encrypted_bytes = encrypted_buf.read()
 
-    print(f"[DEBUG] Encrypted path: {enc_path}")
-    print(f"[DEBUG] Key path: {key_path}")  
+    # Download its Fernet key
+    key_buf = io.BytesIO()
+    s3.download_fileobj(
+        Bucket=settings.S3_BUCKET,
+        Key=f"{s3_key}.key",
+        Fileobj=key_buf
+    )
+    key_buf.seek(0)
+    fernet_key = key_buf.read()
 
-    if not os.path.exists(enc_path):
-        raise FileNotFoundError(f"Encrypted file not found at: {enc_path}")
+    # Local decrypt
+    f = get_fernet(fernet_key)
+    return f.decrypt(encrypted_bytes)
 
-    if not os.path.exists(key_path):
-        raise FileNotFoundError(f"Key file not found at: {key_path}")
+# Write encrypted output to S3 (same as incoming)
+def write_encrypted_output(output_bytes: bytes, prefix="flagged") -> str:
+    key = generate_fernet_key()
+    f = get_fernet(key)
 
-    # Load key
-    with open(key_path, "rb") as f:
-        key = f.read()
-    fernet = Fernet(key)
+    encrypted_bytes = f.encrypt(output_bytes)
 
-    # Load encrypted data
-    with open(enc_path, "rb") as f:
-        encrypted = f.read()
+    s3_key = f"{prefix}/{os.urandom(16).hex()}.bin"
+    key_s3_key = f"{s3_key}.key"
 
-    print(f"[DEBUG] Decryption OK — returning raw bytes")
+    # Upload encrypted output with SSE-KMS
+    s3.upload_fileobj(
+        Fileobj=io.BytesIO(encrypted_bytes),
+        Bucket=settings.S3_BUCKET,
+        Key=s3_key,
+        ExtraArgs={
+            "ServerSideEncryption": "aws:kms",
+            "SSEKMSKeyId": settings.KMS_KEY_ID
+        }
+    )
 
-    # Decrypt
-    return fernet.decrypt(encrypted)
+    # Upload encryption key with SSE-KMS
+    s3.upload_fileobj(
+        Fileobj=io.BytesIO(key),
+        Bucket=settings.S3_BUCKET,
+        Key=key_s3_key,
+        ExtraArgs={
+            "ServerSideEncryption": "aws:kms",
+            "SSEKMSKeyId": settings.KMS_KEY_ID
+        }
+    )
 
+    return s3_key
 
-def write_encrypted_output(data: bytes, prefix="flagged"):
-    """
-    Encrypt ML output using a *new* per-file key.
-    Returns <prefix>/<uuid>.csv.enc
-    """
-    file_id = str(uuid.uuid4())
-    enc_key = generate_key()
-    fernet = Fernet(enc_key)
-
-    enc_path = f"{BASE_DIR}/{prefix}/{file_id}.csv.enc"
-    key_path = f"{BASE_DIR}/{prefix}/{file_id}.key"
-
-    encrypted = fernet.encrypt(data)
-
-    # Save encrypted output
-    with open(enc_path, "wb") as f:
-        f.write(encrypted)
-
-    # Save the per-file key
-    with open(key_path, "wb") as f:
-        f.write(enc_key)
-
-    return f"{prefix}/{file_id}.csv.enc"
-
-
-def delete_key(enc_key: str):
-    """
-    Delete both the encrypted file and key file.
-    """
-    enc_path = f"{BASE_DIR}/{enc_key}"
-    key_path = _get_key_path(enc_key)
-
-    if os.path.exists(enc_path):
-        os.remove(enc_path)
-
-    if os.path.exists(key_path):
-        os.remove(key_path)
+# Cleanup
+def delete_key(s3_key: str):
+    s3.delete_object(Bucket=settings.S3_BUCKET, Key=s3_key)
+    s3.delete_object(Bucket=settings.S3_BUCKET, Key=f"{s3_key}.key")
