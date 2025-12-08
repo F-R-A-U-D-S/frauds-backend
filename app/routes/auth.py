@@ -4,6 +4,7 @@ from app.db.session import get_db
 from app.db.models import User
 from app.core.security import hash_password, verify_password, create_token, _check_password_length
 from app.schemas.user import UserCreate, UserLogin
+import random
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -15,7 +16,22 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == payload.username).first():
         raise HTTPException(status_code=400, detail="username already exists")
 
-    user = User(username=payload.username, password_hash=hash_password(payload.password))
+    # generate unique employee_number
+    # retry if collision (rare, but safe)
+    employee_num = None
+    while True:
+        n = random.randint(100000, 999999)
+        if not db.query(User).filter(User.employee_number == n).first():
+            employee_num = n
+            break
+
+    user = User(
+        username=payload.username,
+        password_hash=hash_password(payload.password),
+        is_admin=False,
+        name="Person Example",
+        employee_number=employee_num,
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
