@@ -61,5 +61,6 @@ async def upload_file(bank_name: str = Form(...), file: UploadFile = File(...), 
         "result_key": result_key,
         "normalized_columns": list(normalized_df.columns),
         "cleaned_rows": len(cleaned_df) ,
+        "Cleaned Data Sample": cleaned_df.head(5).to_dict(orient="records"),
         "log": log
         }

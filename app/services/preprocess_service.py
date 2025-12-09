@@ -113,12 +113,6 @@ def impute_missing_values(df: pd.DataFrame):
             df[col] = df[col].fillna("unknown")
             log.append(f"Imputed {missing_before} missing values in categorical column '{col}' with 'unknown'.")
 
-    # Datetime: fill with 'unknown' string
-    for col in datetime_cols:
-        missing_before = df[col].isna().sum()
-        if missing_before > 0:
-            df[col] = df[col].astype(str).replace("NaT", "unknown")
-            log.append(f"Replaced {missing_before} invalid timestamps in '{col}' with 'unknown'.")
 
     return df, log
 
