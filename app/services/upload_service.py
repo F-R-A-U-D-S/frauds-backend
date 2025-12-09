@@ -20,13 +20,13 @@ def validate_file_extension(filename: str):
 
 from fastapi import HTTPException
 
-def validate_file_size(file_size: int, max_size_mb: int = 5):
+def validate_file_size(file_size: int, max_size_mb: int = 20):
     """
     Validates the uploaded file size against a configurable limit.
 
     Args:
         file_size (int): Size of the uploaded file in bytes.
-        max_size_mb (int): Maximum allowed file size in MB (default: 5MB).
+        max_size_mb (int): Maximum allowed file size in MB (default: 20MB).
 
     Raises:
         HTTPException: If the file exceeds the allowed size limit.
