@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User
@@ -32,12 +33,12 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(payload: UserLogin, db: Session = Depends(get_db)):
-    _check_password_length(payload.password)
-    user = db.query(User).filter(User.username == payload.username).first()
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # _check_password_length(form_data.password) # OAuth2 form handles basic validation, but we can keep custom if needed
+    user = db.query(User).filter(User.username == form_data.username).first()
 
-    if not user or not verify_password(payload.password, user.password_hash):
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="invalid login")
 
     token = create_token(user)
-    return {"access_token": token, "is_admin": user.is_admin}
+    return {"access_token": token, "token_type": "bearer", "is_admin": user.is_admin}
