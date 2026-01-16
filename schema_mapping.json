@@ -2,9 +2,9 @@
     "RBC": {
         "is_default": true,
         "mapping": {
-            "timestamp": "time ",
+            "timestamp": "time",
             "merchant": "vendor",
-            "amount": "money ",
+            "amount": "money",
             "mcc": "mc",
             "city": "province",
             "country": "countries",

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User
 from app.core.security import hash_password, verify_password, create_token, _check_password_length
 from app.schemas.user import UserCreate, UserLogin
-import random
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -16,22 +16,15 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == payload.username).first():
         raise HTTPException(status_code=400, detail="username already exists")
 
-    # generate unique employee_number
-    # retry if collision (rare, but safe)
-    employee_num = None
-    while True:
-        n = random.randint(100000, 999999)
-        if not db.query(User).filter(User.employee_number == n).first():
-            employee_num = n
-            break
-
     user = User(
+        employee_number=payload.employee_number,
+        name=payload.name,
         username=payload.username,
         password_hash=hash_password(payload.password),
-        is_admin=False,
-        name="Person Example",
-        employee_number=employee_num,
+        title=payload.title,
+        is_admin=False  # or payload.is_admin if needed
     )
+
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -40,12 +33,12 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(payload: UserLogin, db: Session = Depends(get_db)):
-    _check_password_length(payload.password)
-    user = db.query(User).filter(User.username == payload.username).first()
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # _check_password_length(form_data.password) # OAuth2 form handles basic validation, but we can keep custom if needed
+    user = db.query(User).filter(User.username == form_data.username).first()
 
-    if not user or not verify_password(payload.password, user.password_hash):
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="invalid login")
 
     token = create_token(user)
-    return {"access_token": token, "is_admin": user.is_admin}
+    return {"access_token": token, "token_type": "bearer", "is_admin": user.is_admin}
