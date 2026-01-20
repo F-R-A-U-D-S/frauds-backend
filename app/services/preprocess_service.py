@@ -165,5 +165,3 @@ def normalize_data(df: pd.DataFrame):
             log.append(f"Removed {negative_count} rows with negative amounts.")
 
     return df, log
-
-

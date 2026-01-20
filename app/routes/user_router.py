@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.security import hash_password
+from app.core.security import hash_password, require_admin
 from app.db.session import get_db
 from app.db.models import User, UserCreate, UserPublic, UserUpdate
 from sqlmodel import select
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_admin)])
 
 
 @router.post("", response_model=UserPublic)
