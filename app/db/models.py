@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, DateTime, Boolean, Integer
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from app.db.base_class import Base
 
@@ -21,7 +22,7 @@ from sqlmodel import SQLModel
 class UserBase(SQLModel):
     name: str 
     username: str 
-    title: str 
+    title: Optional[str] = None
 
 
 class UserPublic(UserBase):
@@ -37,9 +38,9 @@ class UserCreate(UserBase):
     password_hash: str
 
 
-class UserUpdate(UserBase):
-    name: str | None = None
-    username: str | None = None
-    password_hash: str | None = None
-    title: str | None = None
-    is_admin: bool | None = None
+class UserUpdate(SQLModel):
+    name: Optional[str] = None
+    username: Optional[str] = None
+    password_hash: Optional[str] = None
+    title: Optional[str] = None
+    is_admin: Optional[bool] = None

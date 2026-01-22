@@ -35,7 +35,7 @@ async def predict(request: PredictRequest, user = Depends(get_current_user)):
 
 
 @router.get("/download/{key:path}")
-async def download_result(key: str):
+async def download_result(key: str, user = Depends(get_current_user)):
     # decrypt results in memory
     try:
         print("🔍 Downloading key:", key)
