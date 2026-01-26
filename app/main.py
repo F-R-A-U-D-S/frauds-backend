@@ -11,6 +11,10 @@ from app.db.models import User
 # DB tables
 Base.metadata.create_all(bind=engine)
 
+# Load environment variables from dotenv
+from dotenv import load_dotenv
+load_dotenv()
+
 # Lifespan event handler for startup tasks, in this case user instantiation
 @asynccontextmanager
 async def lifespan(app: FastAPI):
