@@ -35,6 +35,7 @@ python-dotenv==1.2.1
 python-jose==3.5.0
 python-multipart==0.0.20
 pytz==2025.2
+reportlab
 rsa==4.9.1
 s3transfer==0.16.0
 scikit-learn==1.7.2
