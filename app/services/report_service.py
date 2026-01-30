@@ -18,6 +18,11 @@ def get_fraud_breakdown(key:str):
     ]
     return data_for_js
 
+def get_csv_data_for_key(key: str) -> bytes:
+    print("🔍 Downloading key:", key)
+    data = load_decrypted(key)
+    return data
+
 def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
     csv_text = csv_bytes.decode("utf-8")
     reader = csv.reader(csv_text.splitlines())
