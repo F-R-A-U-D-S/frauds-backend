@@ -45,20 +45,22 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
 
     # Find column indexes safely
     try:
-        fraud_idx = header.index("is_fraud")
+        timeDate_idx = header.index("timestamp")
+        amount_idx = header.index("amount")
         reasoning_idx = header.index("reasoning")
     except ValueError as e:
         raise ValueError("Required columns missing from CSV") from e
 
     # Build filtered table data
-    table_data = [["is_fraud", "reasoning"]]
+    table_data = [["timestamp","amount","reasoning"]]
 
     for row in rows[1:]:
         reasoning_value = row[reasoning_idx].strip() if len(row) > reasoning_idx else ""
 
         if reasoning_value:  # non-null / non-empty
             table_data.append([
-                row[fraud_idx],
+                row[timeDate_idx],
+                row[amount_idx],
                 Paragraph(reasoning_value, reasoning_style),
             ])
 
@@ -78,7 +80,7 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
 
     table = Table(
         table_data,
-        colWidths=[80, 420],  # narrow fraud flag, wide reasoning
+        colWidths=[100, 60, 340],  
         repeatRows=1,
     )
 
