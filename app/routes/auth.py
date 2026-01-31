@@ -20,6 +20,7 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)):
         employee_number=payload.employee_number,
         name=payload.name,
         username=payload.username,
+        email=payload.email,
         password_hash=hash_password(payload.password),
         title=payload.title,
         is_admin=False  # or payload.is_admin if needed

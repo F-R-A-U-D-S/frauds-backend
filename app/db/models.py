@@ -16,12 +16,14 @@ class User(Base):
     title = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_admin = Column(Boolean, nullable=False, default=False)
+    email = Column(String, unique=True, nullable=True) # Added email field
 
 from sqlmodel import SQLModel
 
 class UserBase(SQLModel):
     name: str 
     username: str 
+    email: Optional[str] = None # Added email field
     title: Optional[str] = None
 
 
@@ -41,6 +43,7 @@ class UserCreate(UserBase):
 class UserUpdate(SQLModel):
     name: Optional[str] = None
     username: Optional[str] = None
+    email: Optional[str] = None # Added email field
     password_hash: Optional[str] = None
     title: Optional[str] = None
     is_admin: Optional[bool] = None

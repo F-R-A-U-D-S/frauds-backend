@@ -11,6 +11,7 @@ class PredictRequest(BaseModel):
 class UserBase(SQLModel):
     name: str
     username: str
+    email: str | None = None
     title: str | None = None
 
 class UserCreate(UserBase):
@@ -30,6 +31,7 @@ class UserPublic(UserBase):
 class UserUpdate(UserBase):
     name: str | None = None
     username: str | None = None
+    email: str | None = None
     password: str | None = None
     title: str | None = None
     is_admin: bool | None = None
