@@ -18,6 +18,15 @@ class User(Base):
     is_admin = Column(Boolean, nullable=False, default=False)
     email = Column(String, unique=True, nullable=True) # Added email field
 
+class ExportToken(Base):
+    __tablename__ = "export_tokens"
+    token = Column(String, primary_key=True, index=True)
+    user_id = Column(String, nullable=False) 
+    file_path = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False)
+
 from sqlmodel import SQLModel
 
 class UserBase(SQLModel):

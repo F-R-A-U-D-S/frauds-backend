@@ -78,6 +78,8 @@ app.include_router(predict.router)
 app.include_router(upload.router)
 app.include_router(schema.router)
 app.include_router(user_router.router)
+from app.routes import export
+app.include_router(export.router)
 
 
 # Basic endpoints

@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "secret-key"
     ALGORITHM: str = "HS256"
 
+    # Email Settings
+    SMTP_SERVER: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAILS_FROM_EMAIL: str | None = "noreply@frauds.com"
+
     class Config:
         env_file = ".env"
 
