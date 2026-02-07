@@ -12,9 +12,19 @@ def get_fraud_breakdown(key:str):
     csv_bytes = load_decrypted(key)
     df = pd.read_csv(io.BytesIO(csv_bytes))  
     fraud_counts = df["is_fraud"].value_counts()
+    positive_fraud_counts = int(fraud_counts.get(1, 0))
+    negative_fraud_counts = int(fraud_counts.get(0, 0))
+    total_fraud_counts = positive_fraud_counts + negative_fraud_counts   
+    if total_fraud_counts > 0:
+        positive_fraud_percentage = positive_fraud_counts / total_fraud_counts
+        negative_fraud_percentage = negative_fraud_counts / total_fraud_counts
+    else:
+        positive_fraud_percentage = 0
+        negative_fraud_percentage = 0
+    
     data_for_js = [
-    {"label": "Not Fraud", "value": int(fraud_counts.get(0, 0))},
-    {"label": "Fraud", "value": int(fraud_counts.get(1, 0))}
+    {"label": "Not Fraud", "value": negative_fraud_counts, "percentage": round(negative_fraud_percentage * 100, 2), "total": total_fraud_counts},
+    {"label": "Fraud", "value": positive_fraud_counts, "percentage": round(positive_fraud_percentage * 100, 2), "total": total_fraud_counts}
     ]
     return data_for_js
 
