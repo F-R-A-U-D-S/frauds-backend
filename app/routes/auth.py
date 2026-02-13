@@ -3,7 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User
-from app.core.security import hash_password, verify_password, create_token, _check_password_length
+from datetime import datetime
+from app.core.security import hash_password, verify_password, create_token, _check_password_length, get_current_user
 from app.schemas.user import UserCreate, UserLogin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -41,5 +42,24 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="invalid login")
 
+    # Update last login time
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+
     token = create_token(user)
     return {"access_token": token, "token_type": "bearer", "is_admin": user.is_admin}
+
+
+@router.post("/logout")
+def logout(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    # Update last logout time
+    user = db.query(User).filter(User.employee_number == current_user['sub']).first()
+    if not user:
+         # Try generic lookup if sub is id
+         user = db.query(User).filter(User.id == current_user['sub']).first()
+    
+    if user:
+        user.last_logout_at = datetime.utcnow()
+        db.commit()
+    
+    return {"message": "Successfully logged out"}

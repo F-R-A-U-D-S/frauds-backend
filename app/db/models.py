@@ -17,6 +17,8 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_admin = Column(Boolean, nullable=False, default=False)
     email = Column(String, unique=True, nullable=True) # Added email field
+    last_login_at = Column(DateTime, nullable=True) # Track last login
+    last_logout_at = Column(DateTime, nullable=True) # Track last logout
 
 class ExportToken(Base):
     __tablename__ = "export_tokens"

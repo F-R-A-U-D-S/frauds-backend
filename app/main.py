@@ -80,6 +80,8 @@ app.include_router(schema.router)
 app.include_router(user_router.router)
 from app.routes import export
 app.include_router(export.router)
+from app.routes import admin_stats
+app.include_router(admin_stats.router)
 
 
 # Basic endpoints

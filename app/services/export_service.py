@@ -128,7 +128,7 @@ def process_export_request(user_id: str, user_email: str, format: str):
             # Send Email
             
             # User email might be None if not set (but we added it), check logic
-            valid_email = user_email or "tauheed@example.com" # Fallback for demo
+            valid_email = user_email  # Fallback for demo
             
             # Assuming backend URL is configurable or hardcoded for now
             base_url = "http://localhost:8000" # Should come from config
