@@ -10,28 +10,28 @@ from app.schemas.user import UserCreate, UserLogin
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/signup")
-def signup(payload: UserCreate, db: Session = Depends(get_db)):
-    _check_password_length(payload.password)
-    # create user using JSON body (username/password hidden from URL)
-    if db.query(User).filter(User.username == payload.username).first():
-        raise HTTPException(status_code=400, detail="username already exists")
+# @router.post("/signup")
+# def signup(payload: UserCreate, db: Session = Depends(get_db)):
+#     _check_password_length(payload.password)
+#     # create user using JSON body (username/password hidden from URL)
+#     if db.query(User).filter(User.username == payload.username).first():
+#         raise HTTPException(status_code=400, detail="username already exists")
 
-    user = User(
-        employee_number=payload.employee_number,
-        name=payload.name,
-        username=payload.username,
-        email=payload.email,
-        password_hash=hash_password(payload.password),
-        title=payload.title,
-        is_admin=False  # or payload.is_admin if needed
-    )
+#     user = User(
+#         employee_number=payload.employee_number,
+#         name=payload.name,
+#         username=payload.username,
+#         email=payload.email,
+#         password_hash=hash_password(payload.password),
+#         title=payload.title,
+#         is_admin=False  # or payload.is_admin if needed
+#     )
 
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+#     db.add(user)
+#     db.commit()
+#     db.refresh(user)
 
-    return {"message": "user created", "id": user.id}
+#     return {"message": "user created", "id": user.id}
 
 
 @router.post("/login")
