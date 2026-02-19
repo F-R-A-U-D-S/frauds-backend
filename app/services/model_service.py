@@ -350,13 +350,13 @@ def process_local_and_predict(input_key: str):
             )
             if reason_text.strip() == "":
                 reason_text = "Model flagged unusual pattern"
-            xgb_reasoning[i] = f"{reason_text} (xgb={df.loc[i, 'xgb_confidence']:.2f})"
+            xgb_reasoning[i] = f"{reason_text}"
 
         if df.loc[i, "anomaly_flag"] == 1:
             reason_text = anomaly_reasons_rule(df.loc[i], top_n=3)
             if reason_text.strip() == "":
                 reason_text = "Unusual overall behavior"
-            anom_reasoning[i] = f"{reason_text} (anom={df.loc[i, 'anomaly_score']:.3f})"
+            anom_reasoning[i] = f"{reason_text}"
 
         if df.loc[i, "rf_flag"] == 1:
             rf_reasoning[i] = (
