@@ -8,10 +8,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from app.core.local_storage import load_decrypted
 
-def get_fraud_breakdown(key:str):
+def get_fraud_status_breakdown(key:str):
     csv_bytes = load_decrypted(key)
     df = pd.read_csv(io.BytesIO(csv_bytes))  
-    fraud_counts = df["is_fraud"].value_counts()
+    fraud_counts = df["xgb_flag"].value_counts()
     positive_fraud_counts = int(fraud_counts.get(1, 0))
     negative_fraud_counts = int(fraud_counts.get(0, 0))
     total_fraud_counts = positive_fraud_counts + negative_fraud_counts   
@@ -27,6 +27,22 @@ def get_fraud_breakdown(key:str):
     {"label": "Fraud", "value": positive_fraud_counts, "percentage": round(positive_fraud_percentage * 100, 2), "total": total_fraud_counts}
     ]
     return data_for_js
+
+def get_fraud_type_breakdown(key:str):
+    csv_bytes = load_decrypted(key)
+    df = pd.read_csv(io.BytesIO(csv_bytes))  
+    fraud_counts = df["xgb_flag"].value_counts()
+    positive_fraud_counts = int(fraud_counts.get(1, 0))
+    total_fraud_counts = positive_fraud_counts
+    fraud_rows = df[df["xgb_flag"] == 1]
+    reasoning_series = fraud_rows["reasoning"].dropna().str.split(";")
+    all_reasonings = [reason.strip() for sublist in reasoning_series for reason in sublist]
+    reasoning_counts = pd.Series(all_reasonings).value_counts()
+    reasoning_data_for_js = [
+        {"label": label, "value": int(count), "percentage": round(count / positive_fraud_counts * 100, 2), "total": total_fraud_counts}
+        for label, count in reasoning_counts.items()
+    ]
+    return reasoning_data_for_js
 
 def get_csv_data_for_key(key: str) -> bytes:
     print("🔍 Downloading key:", key)
