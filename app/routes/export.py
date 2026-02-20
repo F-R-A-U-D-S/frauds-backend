@@ -69,7 +69,10 @@ def download_export(
             headers={"Content-Disposition": f'attachment; filename="{filename}"'}
         )
     except ValueError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        # Redirect to frontend error page
+        from app.core.config import settings
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"{settings.FRONTEND_URL}/download-error?error={str(e)}")
     except Exception as e:
         logger.error(f"Download error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
