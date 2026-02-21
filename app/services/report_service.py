@@ -8,6 +8,16 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from app.core.local_storage import load_decrypted
 
+def get_fraud_table_breakdown(key:str):
+    csv_bytes = load_decrypted(key)
+    df = pd.read_csv(io.BytesIO(csv_bytes))  
+    fraud_rows = df[df["xgb_flag"] == 1]
+    data_for_js = [
+        {"id": _, "timestamp": row["timestamp"], "merchant": row["merchant"], "amount": row["amount"], "mcc": row["mcc"], "city": row["city"], "country": row["country"], "channel": row["channel"], "reasoning": row["reasoning"]}
+        for _, row in fraud_rows.iterrows()
+    ]
+    return data_for_js
+
 def get_fraud_status_breakdown(key:str):
     csv_bytes = load_decrypted(key)
     df = pd.read_csv(io.BytesIO(csv_bytes))  
