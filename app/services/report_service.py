@@ -147,7 +147,7 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
 
     elements = []
 
-    img = Image("fraud_logo_64.jpg")
+    img = Image("fraud_logo_64.png")
     img.hAlign = "LEFT"
     elements.append(img)
 
