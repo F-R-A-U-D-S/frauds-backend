@@ -10,6 +10,11 @@ def save_schema(bank_name: str,mapping: dict):
 
     if not bank_name or not mapping:
         raise ValueError("bank_name and mapping are required")
+    
+    # Check for empty mapping values
+    for val in mapping.values():
+        if not val or not str(val).strip():
+            raise ValueError("Schema mapping columns cannot be empty")
 
     # Load existing data if file exists
     if SCHEMA_FILE.exists():

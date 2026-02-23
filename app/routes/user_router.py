@@ -21,6 +21,7 @@ def create_user(
         employee_number=user.employee_number,
         name=user.name,
         username=user.username,
+        email=user.email,
         password_hash=hash_password(user.password_hash),
         title=user.title
     )

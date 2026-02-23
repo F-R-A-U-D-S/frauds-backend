@@ -3,33 +3,35 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User
-from app.core.security import hash_password, verify_password, create_token, _check_password_length
+from datetime import datetime
+from app.core.security import hash_password, verify_password, create_token, _check_password_length, get_current_user
 from app.schemas.user import UserCreate, UserLogin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/signup")
-def signup(payload: UserCreate, db: Session = Depends(get_db)):
-    _check_password_length(payload.password)
-    # create user using JSON body (username/password hidden from URL)
-    if db.query(User).filter(User.username == payload.username).first():
-        raise HTTPException(status_code=400, detail="username already exists")
+# @router.post("/signup")
+# def signup(payload: UserCreate, db: Session = Depends(get_db)):
+#     _check_password_length(payload.password)
+#     # create user using JSON body (username/password hidden from URL)
+#     if db.query(User).filter(User.username == payload.username).first():
+#         raise HTTPException(status_code=400, detail="username already exists")
 
-    user = User(
-        employee_number=payload.employee_number,
-        name=payload.name,
-        username=payload.username,
-        password_hash=hash_password(payload.password),
-        title=payload.title,
-        is_admin=False  # or payload.is_admin if needed
-    )
+#     user = User(
+#         employee_number=payload.employee_number,
+#         name=payload.name,
+#         username=payload.username,
+#         email=payload.email,
+#         password_hash=hash_password(payload.password),
+#         title=payload.title,
+#         is_admin=False  # or payload.is_admin if needed
+#     )
 
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+#     db.add(user)
+#     db.commit()
+#     db.refresh(user)
 
-    return {"message": "user created", "id": user.id}
+#     return {"message": "user created", "id": user.id}
 
 
 @router.post("/login")
@@ -40,5 +42,24 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="invalid login")
 
+    # Update last login time
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+
     token = create_token(user)
     return {"access_token": token, "token_type": "bearer", "is_admin": user.is_admin}
+
+
+@router.post("/logout")
+def logout(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    # Update last logout time
+    user = db.query(User).filter(User.employee_number == current_user['sub']).first()
+    if not user:
+         # Try generic lookup if sub is id
+         user = db.query(User).filter(User.id == current_user['sub']).first()
+    
+    if user:
+        user.last_logout_at = datetime.utcnow()
+        db.commit()
+    
+    return {"message": "Successfully logged out"}

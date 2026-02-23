@@ -16,12 +16,25 @@ class User(Base):
     title = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_admin = Column(Boolean, nullable=False, default=False)
+    email = Column(String, unique=True, nullable=True) # Added email field
+    last_login_at = Column(DateTime, nullable=True) # Track last login
+    last_logout_at = Column(DateTime, nullable=True) # Track last logout
+
+class ExportToken(Base):
+    __tablename__ = "export_tokens"
+    token = Column(String, primary_key=True, index=True)
+    user_id = Column(String, nullable=False) 
+    file_path = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False)
 
 from sqlmodel import SQLModel
 
 class UserBase(SQLModel):
     name: str 
     username: str 
+    email: Optional[str] = None # Added email field
     title: Optional[str] = None
 
 
@@ -41,6 +54,7 @@ class UserCreate(UserBase):
 class UserUpdate(SQLModel):
     name: Optional[str] = None
     username: Optional[str] = None
+    email: Optional[str] = None # Added email field
     password_hash: Optional[str] = None
     title: Optional[str] = None
     is_admin: Optional[bool] = None
