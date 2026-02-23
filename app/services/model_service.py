@@ -264,6 +264,7 @@ def process_local_and_predict(input_key: str):
         "num__z_amount_merchant": "Amount unusually high for this merchant",
         "num__hour": "Unusual transaction time",
         "num__weekday": "Unusual day of week for spending",
+        "num__month": "Out-of-pattern month",
         "num__merchant_freq": "Merchant rarely used",
         "num__mcc_freq": "Merchant category rarely used",
         "num__merchant_avg": "Amount inconsistent with typical spending at this merchant",
