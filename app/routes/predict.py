@@ -44,7 +44,7 @@ async def download_result(key: str, user = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Decrypt failed: {str(e)}")
 
     # delete encrypted file after serving
-    delete_key(key)
+    # delete_key(key)
 
     return StreamingResponse(
         iter([csv_data]),
@@ -62,7 +62,7 @@ async def download_pdf(key: str, user=Depends(get_current_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    delete_key(key)
+    # delete_key(key)
 
     return StreamingResponse(
         iter([pdf_bytes]),
