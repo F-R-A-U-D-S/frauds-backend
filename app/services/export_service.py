@@ -131,7 +131,7 @@ def process_export_request(user_id: str, user_email: str, format: str):
             valid_email = user_email  # Fallback for demo
             
             # Assuming backend URL is configurable or hardcoded for now
-            base_url = "http://localhost:8000" # Should come from config
+            base_url = "https://1nbzc14zj2.execute-api.us-east-1.amazonaws.com" # Should come from config
             download_link = f"{base_url}/export/download?token={token}"
             
             send_export_email(valid_email, download_link, format)
