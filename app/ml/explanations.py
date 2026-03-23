@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict
-
+import logging
 import numpy as np
 import pandas as pd
 import shap
@@ -9,37 +9,39 @@ import shap
 from app.ml.constants import RF_PERCENTILE, TRANSLATION_MAP
 from app.ml.model_loader import MODELS
 
+logger = logging.getLogger(__name__)
 
 def attach_explanations(
     df: pd.DataFrame,
     x_dense: np.ndarray,
     feature_names: np.ndarray,
 ) -> pd.DataFrame:
-    df = df.copy()
-
-    try:
-        explainer = shap.Explainer(MODELS.xgb_model, x_dense, algorithm="tree")
-        shap_output = explainer(x_dense)
-    except Exception:
-        df["reasoning"] = [""] * len(df)
-        df["anomaly_reasoning"] = [""] * len(df)
-        df["rf_reasoning"] = [""] * len(df)
-        return df
-
-    shap_values = shap_output.values
-    if shap_values.ndim == 3:
-        shap_values_fraud = shap_values[:, :, 1]
-    else:
-        shap_values_fraud = shap_values
-
-    anomaly_thresholds = compute_anomaly_reason_thresholds(df)
+    df = df.copy().reset_index(drop=True)
 
     xgb_reasoning: list[str] = [""] * len(df)
     anomaly_reasoning: list[str] = [""] * len(df)
     rf_reasoning: list[str] = [""] * len(df)
 
+    shap_values_fraud = None
+
+    try:
+        explainer = shap.Explainer(MODELS.xgb_model, x_dense, algorithm="tree")
+        shap_output = explainer(x_dense)
+        shap_values = shap_output.values
+
+        if shap_values.ndim == 3:
+            shap_values_fraud = shap_values[:, :, 1]
+        else:
+            shap_values_fraud = shap_values
+    except Exception as e:
+        logger.exception("SHAP explanation generation failed: %s", e)
+
+    anomaly_thresholds = compute_anomaly_reason_thresholds(df)
+
     for i in range(len(df)):
-        if int(df.loc[i, "xgb_flag"]) == 1:
+        row = df.iloc[i]
+
+        if int(row["xgb_flag"]) == 1 and shap_values_fraud is not None:
             reason_text = build_shap_reason_text(
                 shap_row=np.asarray(shap_values_fraud[i], dtype=float),
                 feature_names=feature_names,
@@ -48,13 +50,13 @@ def attach_explanations(
             )
             xgb_reasoning[i] = reason_text or "Model flagged unusual pattern"
 
-        if int(df.loc[i, "anomaly_flag"]) == 1:
-            reason_text = build_anomaly_reason_text(df.loc[i], anomaly_thresholds, top_n=3)
+        if int(row["anomaly_flag"]) == 1:
+            reason_text = build_anomaly_reason_text(row, anomaly_thresholds, top_n=3)
             anomaly_reasoning[i] = reason_text or "Unusual overall behavior"
 
-        if int(df.loc[i, "rf_flag"]) == 1:
+        if int(row["rf_flag"]) == 1:
             rf_reasoning[i] = (
-                f"RF also flagged (rf={df.loc[i, 'rf_confidence']:.2f}; "
+                f"RF also flagged (rf={row['rf_confidence']:.2f}; "
                 f"top={int((1 - RF_PERCENTILE) * 100)}%)"
             )
 
