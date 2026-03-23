@@ -56,4 +56,3 @@ uvicorn==0.34.0
 email-validator
 xgboost==3.2.0
 matplotilb
-xgboost
