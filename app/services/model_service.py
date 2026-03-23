@@ -107,6 +107,10 @@ def write_output(df: pd.DataFrame) -> str:
     try:
         buffer = io.StringIO()
         df.to_csv(buffer, index=False)
-        return write_encrypted_output(buffer.getvalue().encode(), prefix="flagged")
+        return write_encrypted_output(
+            buffer.getvalue().encode(),
+            prefix="flagged",
+            extension="csv"
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Failed to write output file.") from exc

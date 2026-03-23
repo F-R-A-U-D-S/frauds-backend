@@ -7,7 +7,8 @@ class Settings(BaseSettings):
     S3_BUCKET: str = "capstone-secure-uploads"
     KMS_KEY_ID: str = "arn:aws:kms:us-east-1:132121094135:key/b151ad6a-5680-4372-9e2c-9edc2962f653"
 
-    FRONTEND_URL: str = "https://staging-frontend.d2zw602flyuq7a.amplifyapp.com"
+    FRONTEND_BASE_URL: str = "https://frauds.online"
+    
 
 
     AWS_ACCESS_KEY_ID: str | None = None
@@ -22,7 +23,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
-    EMAILS_FROM_EMAIL: str | None = "noreply@frauds.com"
+    EMAILS_FROM_EMAIL: str | None = "noreply@fraudsapp.online"
 
     class Config:
         env_file = ".env"

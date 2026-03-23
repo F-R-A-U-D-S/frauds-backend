@@ -79,7 +79,7 @@ def load_decrypted(s3_key: str) -> bytes:
     return f.decrypt(encrypted_bytes)
 
 
-def write_encrypted_output(output_bytes: bytes, prefix="flagged") -> str:
+def write_encrypted_output(output_bytes: bytes, prefix="flagged", extension="csv") -> str:
     s3 = _s3()
 
     key = generate_fernet_key()
@@ -87,7 +87,7 @@ def write_encrypted_output(output_bytes: bytes, prefix="flagged") -> str:
 
     encrypted_bytes = f.encrypt(output_bytes)
 
-    s3_key = f"{prefix}/{os.urandom(16).hex()}.bin"
+    s3_key = f"{prefix}/{os.urandom(16).hex()}.{extension}.bin"
     key_s3_key = f"{s3_key}.key"
 
     s3.upload_fileobj(
@@ -112,8 +112,7 @@ def write_encrypted_output(output_bytes: bytes, prefix="flagged") -> str:
 
     return s3_key
 
-
-def delete_key(s3_key: str):
+def delete_key(s3_key: str): 
     s3 = _s3()
     s3.delete_object(Bucket=settings.S3_BUCKET, Key=s3_key)
     s3.delete_object(Bucket=settings.S3_BUCKET, Key=f"{s3_key}.key")

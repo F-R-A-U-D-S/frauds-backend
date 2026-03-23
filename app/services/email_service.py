@@ -2,48 +2,74 @@ import boto3
 from botocore.exceptions import ClientError
 from app.core.config import settings
 import logging
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
 def send_export_email(to_email: str, download_link: str, format: str):
-    """
-    Sends an email with the download link to the user using AWS SES.
-    """
-    subject = f"Your Fraud Analysis {format.upper()} Export is Ready"
-    
+    subject = f"Your FRAUDS {format.upper()} report is ready"
+
+    requested_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    text_content = f"""Hello,
+
+Your requested {format.upper()} report from FRAUDS is ready.
+
+Requested at: {requested_at}
+Download link: {download_link}
+
+This link will expire in 30 minutes.
+
+If you did not request this report, you can ignore this email.
+
+FRAUDS
+fraudsapp.online
+support@fraudsapp.online
+"""
+
     html_content = f"""
     <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 8px;">
-                <h2 style="color: #2c3e50; border-bottom: 2px solid #007bff; padding-bottom: 10px;">Fraud Analysis Export Complete</h2>
-                <p>Hello,</p>
-                <p>Your requested <strong>{format.upper()}</strong> export for the latest fraud analysis session has been successfully generated.</p>
-                
-                <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
-                    <p style="margin: 0;"><strong>Security Notice:</strong> This download link is valid for <strong>30 minutes</strong>.</p>
+        <body style="margin:0; padding:0; font-family: Arial, sans-serif; color:#222; background-color:#f6f7f9;">
+            <div style="max-width:600px; margin:40px auto; background:#ffffff; border:1px solid #5d19c4; border-radius:10px; overflow:hidden;">
+                <div style="padding:24px 24px 12px 24px;">
+                    <h2 style="margin:0 0 16px 0; font-size:24px; color:#111827;">Your {format.upper()} report is ready</h2>
+                    <p style="margin:0 0 16px 0;">Hello,</p>
+                    <p style="margin:0 0 16px 0;">
+                        Your requested <strong>{format.upper()}</strong> report from <strong>FRAUDS</strong> has been generated successfully.
+                    </p>
+                    <p style="margin:0 0 16px 0;">
+                        <strong>Requested at:</strong> {requested_at}
+                    </p>
+                    <p style="margin:0 0 20px 0;">
+                        This download link will expire in <strong>30 minutes</strong>.
+                    </p>
+                    <p style="margin:0 0 24px 0;">
+                        <a href="{download_link}" style="display:inline-block; padding:12px 20px; background:#2563eb; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:bold;">
+                            Download report
+                        </a>
+                    </p>
+                    <p style="margin:0 0 12px 0; font-size:14px; color:#5d19c4;">
+                        If the button does not work, copy and paste this link into your browser:
+                    </p>
+                    <p style="margin:0 0 20px 0; font-size:14px; color:#5d19c4; word-break:break-all;">
+                        {download_link}
+                    </p>
+                    <p style="margin:0 0 16px 0; font-size:14px; color:#5d19c4;">
+                        If you did not request this report, you can ignore this email.
+                    </p>
                 </div>
-
-                <p>You can access your report using the secure link below:</p>
-                
-                <p style="word-break: break-all; margin: 20px 0;">
-                    <a href="{download_link}" style="color: #007bff; text-decoration: underline;">{download_link}</a>
-                </p>
-
-                <p style="font-size: 0.9em; color: #666;">If you are unable to click the link, please copy and paste the URL above into your web browser.</p>
-                <br>
-                <hr style="border: 0; border-top: 1px solid #eee;">
-                <p style="font-size: 0.8em; color: #888;">
-                    Best regards,<br>
-                    <strong>The F.R.A.U.D.S Security Team</strong>
-                </p>
+                <div style="padding:16px 24px; border-top:1px solid #e5e7eb; font-size:13px; color:#6b7280;">
+                    FRAUDS<br>
+                    fraudsapp.online<br>
+                    support@fraudsapp.online
+                </div>
             </div>
         </body>
     </html>
     """
 
-    # Check if AWS credentials are configured
     if not settings.AWS_ACCESS_KEY_ID or not settings.AWS_SECRET_ACCESS_KEY:
-        logger.warning(f"AWS Credentials not configured. Mock sending email to {to_email} with link: {download_link}")
+        logger.warning(f"AWS credentials not configured. Mock sending email to {to_email} with link: {download_link}")
         return
 
     try:
@@ -66,7 +92,7 @@ def send_export_email(to_email: str, download_link: str, format: str):
                     },
                     "Text": {
                         "Charset": "UTF-8",
-                        "Data": f"Your {format.upper()} export is ready. Download it here: {download_link}",
+                        "Data": text_content,
                     },
                 },
                 "Subject": {
@@ -75,8 +101,9 @@ def send_export_email(to_email: str, download_link: str, format: str):
                 },
             },
             Source=settings.EMAILS_FROM_EMAIL,
+            ReplyToAddresses=["support@fraudsapp.online"],
         )
-            
+
         logger.info(f"Email sent to {to_email} MessageId: {response['MessageId']}")
 
     except ClientError as e:
