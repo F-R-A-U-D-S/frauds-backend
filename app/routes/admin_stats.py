@@ -39,9 +39,13 @@ def _get_all_activities(db: Session, limit: int = 5, offset: int = 0):
     recent_tokens = db.query(ExportToken).order_by(ExportToken.created_at.desc()).limit(fetch_limit).all()
     token_activities = []
     for t in recent_tokens:
-        u = db.query(User).filter(User.employee_number == t.user_id).first()
+        user_id_str = t.user_id
+        if str(user_id_str).isdigit():
+            u = db.query(User).filter(User.employee_number == int(user_id_str)).first()
+        else:
+            u = None
         if not u:
-             u = db.query(User).filter(User.id == t.user_id).first()
+             u = db.query(User).filter(User.id == str(user_id_str)).first()
         
         user_name = u.name if u else "Unknown User"
         token_activities.append({

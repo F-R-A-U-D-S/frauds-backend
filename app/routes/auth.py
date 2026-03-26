@@ -53,10 +53,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @router.post("/logout")
 def logout(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     # Update last logout time
-    user = db.query(User).filter(User.employee_number == current_user['sub']).first()
+    sub = current_user['sub']
+    user = None
+    if str(sub).isdigit():
+        user = db.query(User).filter(User.employee_number == int(sub)).first()
     if not user:
-         # Try generic lookup if sub is id
-         user = db.query(User).filter(User.id == current_user['sub']).first()
+         user = db.query(User).filter(User.id == str(sub)).first()
     
     if user:
         user.last_logout_at = datetime.utcnow()
