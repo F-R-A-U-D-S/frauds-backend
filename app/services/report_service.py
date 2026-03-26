@@ -222,14 +222,14 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
     table_header_style = ParagraphStyle(
         "TableHeaderStyle",
         parent=styles["Normal"],
-        fontName="Times-Roman"
+        fontName="Times-Bold"
     )
 
     amount_table_header_style = ParagraphStyle(
         "AmountHeaderStyle",
         parent=styles["Normal"],
         alignment=2,
-        fontName="Times-Roman"
+        fontName="Times-Bold"
     )
 
     table_row_style = ParagraphStyle(
@@ -245,6 +245,21 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
         alignment=2,
         fontName="Times-Roman"
     )
+
+    flagged_transactions_table_style = TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), "#b89fe3"),
+        ("LINEBELOW", (0,1), (-1,-1), 0.5, colors.grey, None, [2, 2]),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+    ])
+
+    executive_summary_table_style = TableStyle([
+        ("BOX", (0,0), (-1,-1), 0.5, colors.grey),
+        ("INNERGRID", (0,0), (-1,-1), 0.25, colors.lightgrey),
+        ("FONTNAME", (0,0), (0,-1), "Times-Bold"),
+        ("FONTNAME", (1,1), (-1,-1), "Times-Roman"),
+        ("FONTSIZE", (0,0), (-1,-1), 10)
+    ])
 
     if not rows:
         raise ValueError("CSV is empty")
@@ -281,7 +296,7 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
         total_spend = "Unknown"
         avg_amount = "Unknown"
 
-    summary_data = [
+    executive_summary_data = [
         ["Date Range", date_range],
         ["Transactions Analyzed", f"{total_tx:,}"],
         ["Flagged Transactions", f"{fraud_tx:,}"],
@@ -290,7 +305,7 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
         ["Average Transaction Amount", avg_amount]
     ]
 
-    table_data = [[Paragraph("<b>Timestamp</b>",table_header_style),Paragraph("<b>Merchant</b>",table_header_style),Paragraph("<b>Fraud Reasoning</b>",table_header_style),Paragraph("<b>Amount</b>",amount_table_header_style)]]
+    table_data = [[Paragraph("Timestamp",table_header_style),Paragraph("Merchant",table_header_style),Paragraph("Fraud Reasoning",table_header_style),Paragraph("Amount",amount_table_header_style)]]
 
     for row in rows[1:]:
         reasoning_value = row[reasoning_idx].strip() if len(row) > reasoning_idx else ""
@@ -332,15 +347,10 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
 
     elements.append(Paragraph("Executive Summary", section_header_style))
 
-    summary_table = Table(summary_data, colWidths=[200, 350])
-    summary_table.setStyle(TableStyle([
-        ("BOX", (0,0), (-1,-1), 0.5, colors.grey),
-        ("INNERGRID", (0,0), (-1,-1), 0.25, colors.lightgrey),
-        ("FONTNAME", (0,0), (0,-1), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 9)
-    ]))
+    executive_summary_table = Table(executive_summary_data, colWidths=[200, 350])
+    executive_summary_table.setStyle(executive_summary_table_style)
 
-    elements.append(summary_table)
+    elements.append(executive_summary_table)
 
     xgb_flag_chart = _make_flag_bar(df)
     xgb_reason_chart = _make_reason_bar(df)
@@ -398,13 +408,7 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
         repeatRows=1,
     )
 
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), "#b89fe3"),
-        ("LINEBELOW", (0,1), (-1,-1), 0.5, colors.grey, None, [2, 2]),
-        ("FONT", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-    ]))
+    table.setStyle(flagged_transactions_table_style)
 
     elements.append(table)
 
