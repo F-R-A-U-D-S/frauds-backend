@@ -10,6 +10,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import Image, SimpleDocTemplate, Spacer, Table, TableStyle, Paragraph
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import KeepTogether
 
 from app.core.local_storage import load_decrypted
 
@@ -202,7 +203,7 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
         "ReportHeaderStyle",
         parent=styles["Title"],
         alignment=0,
-        fontName="Times-Roman"
+        fontName="Times-Bold"
     )
     
     report_paragraph_style = ParagraphStyle(
@@ -222,14 +223,14 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
     table_header_style = ParagraphStyle(
         "TableHeaderStyle",
         parent=styles["Normal"],
-        fontName="Times-Roman"
+        fontName="Times-Bold"
     )
 
     amount_table_header_style = ParagraphStyle(
         "AmountHeaderStyle",
         parent=styles["Normal"],
         alignment=2,
-        fontName="Times-Roman"
+        fontName="Times-Bold"
     )
 
     table_row_style = ParagraphStyle(
@@ -245,6 +246,21 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
         alignment=2,
         fontName="Times-Roman"
     )
+
+    flagged_transactions_table_style = TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), "#b89fe3"),
+        ("LINEBELOW", (0,1), (-1,-1), 0.5, colors.grey, None, [2, 2]),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+    ])
+
+    summary_table_style = TableStyle([
+        ("BOX", (0,0), (-1,-1), 0.5, colors.grey),
+        ("INNERGRID", (0,0), (-1,-1), 0.25, colors.lightgrey),
+        ("FONTNAME", (0,0), (0,-1), "Times-Bold"),
+        ("FONTNAME", (1,0), (-1,-1), "Times-Roman"),
+        ("FONTSIZE", (0,0), (-1,-1), 10)
+    ])
 
     if not rows:
         raise ValueError("CSV is empty")
@@ -275,13 +291,25 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
 
     if "amount" in df.columns:
         amt = pd.to_numeric(df["amount"], errors="coerce")
+        highest_amount = f"${amt.max():,.2f}"
         total_spend = f"${amt.sum():,.2f}"
         avg_amount = f"${amt.mean():,.2f}"
     else:
+        highest_amount = "Unknown"
         total_spend = "Unknown"
         avg_amount = "Unknown"
 
-    summary_data = [
+    if "merchant" in df.columns:
+        unique_merchants = df["merchant"].nunique()
+    else:
+        unique_merchants = "Unknown"
+
+    if "country" in df.columns:
+        amt_foreign_transactions = (df["country"] != "ca").sum()
+    else:
+        amt_foreign_transactions = "Unknown"
+
+    executive_summary_data = [
         ["Date Range", date_range],
         ["Transactions Analyzed", f"{total_tx:,}"],
         ["Flagged Transactions", f"{fraud_tx:,}"],
@@ -290,7 +318,13 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
         ["Average Transaction Amount", avg_amount]
     ]
 
-    table_data = [[Paragraph("<b>Timestamp</b>",table_header_style),Paragraph("<b>Merchant</b>",table_header_style),Paragraph("<b>Fraud Reasoning</b>",table_header_style),Paragraph("<b>Amount</b>",amount_table_header_style)]]
+    transaction_summary_data = [
+        ["Largest Transaction", f"{highest_amount}"],
+        ["Unique Merchants", f"{unique_merchants}"],
+        ["Foreign Transactions",f"{amt_foreign_transactions}"]
+    ]
+
+    table_data = [[Paragraph("Timestamp",table_header_style),Paragraph("Merchant",table_header_style),Paragraph("Fraud Reasoning",table_header_style),Paragraph("Amount",amount_table_header_style)]]
 
     for row in rows[1:]:
         reasoning_value = row[reasoning_idx].strip() if len(row) > reasoning_idx else ""
@@ -323,7 +357,7 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
 
     elements.append(Spacer(1, 25))
 
-    elements.append(Paragraph("<b>Fraud Analysis Summary</b>",report_header_style))
+    elements.append(Paragraph("Fraud Analysis Summary",report_header_style))
 
     formattedDate = datetime.now().strftime("%B %d, %Y")
     elements.append(Paragraph("Report Date: " + formattedDate, report_paragraph_style))
@@ -332,15 +366,18 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
 
     elements.append(Paragraph("Executive Summary", section_header_style))
 
-    summary_table = Table(summary_data, colWidths=[200, 350])
-    summary_table.setStyle(TableStyle([
-        ("BOX", (0,0), (-1,-1), 0.5, colors.grey),
-        ("INNERGRID", (0,0), (-1,-1), 0.25, colors.lightgrey),
-        ("FONTNAME", (0,0), (0,-1), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 9)
-    ]))
+    executive_summary_table = Table(executive_summary_data, colWidths=[200, 350])
+    executive_summary_table.setStyle(summary_table_style)
 
-    elements.append(summary_table)
+    elements.append(executive_summary_table)
+    elements.append(Spacer(1, 10))
+
+    transaction_summary_table = Table(transaction_summary_data, colWidths=[200, 350])
+    transaction_summary_table.setStyle(summary_table_style)
+
+    elements.append(KeepTogether([Paragraph("Transaction Summary", section_header_style),transaction_summary_table]))
+    elements.append(Spacer(1, 10))
+
 
     xgb_flag_chart = _make_flag_bar(df)
     xgb_reason_chart = _make_reason_bar(df)
@@ -351,46 +388,39 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
 
     if xgb_flag_chart or xgb_reason_chart:
         elements.append(Spacer(1, 15))
-        elements.append(Paragraph("XGBoost Fraud Breakdown", section_header_style))
-        elements.append(Spacer(1, 8))
+        #elements.append(Paragraph("XGBoost Fraud Breakdown", section_header_style))
+        #elements.append(Spacer(1, 10))
         if xgb_flag_chart:
             elements.append(xgb_flag_chart)
-            elements.append(Spacer(1, 10))
+            elements.append(Spacer(1, 15))
         if xgb_reason_chart:
             elements.append(xgb_reason_chart)
-            elements.append(Spacer(1, 10))
+            elements.append(Spacer(1, 15))
 
     if anomaly_flag_chart or anomaly_reason_chart:
-        elements.append(Spacer(1, 5))
-        elements.append(Paragraph("Anomaly Detection Breakdown", section_header_style))
-        elements.append(Spacer(1, 8))
+        elements.append(Spacer(1, 15))
+        #elements.append(Paragraph("Anomaly Detection Breakdown", section_header_style))
+        #elements.append(Spacer(1, 10))
         if anomaly_flag_chart:
             elements.append(anomaly_flag_chart)
-            elements.append(Spacer(1, 10))
+            elements.append(Spacer(1, 15))
         if anomaly_reason_chart:
             elements.append(anomaly_reason_chart)
-            elements.append(Spacer(1, 10))
+            elements.append(Spacer(1, 15))
 
     if harmonized_chart:
-        elements.append(Spacer(1, 5))
-        elements.append(Paragraph("Harmonized Fraud Breakdown", section_header_style))
-        elements.append(Spacer(1, 8))
+        elements.append(Spacer(1, 15))
+        #elements.append(Paragraph("Harmonized Fraud Breakdown", section_header_style))
+        #elements.append(Spacer(1, 10))
         elements.append(harmonized_chart)
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 15))
 
     if rule_chart:
-        elements.append(Spacer(1, 5))
-        elements.append(Paragraph("Fraud Rule Scenario Logic", section_header_style))
-        elements.append(Spacer(1, 8))
+        elements.append(Spacer(1, 15))
+        #elements.append(Paragraph("Fraud Rule Scenario Logic", section_header_style))
+        #elements.append(Spacer(1, 10))
         elements.append(rule_chart)
-        elements.append(Spacer(1, 10))
-
-    elements.append(Spacer(1, 5))
-    elements.append(Paragraph("Final Harmonized Flagged Transactions", section_header_style))
-    elements.append(Spacer(1, 8))
-    elements.append(Paragraph("Fraudulent transactions are organized by review priority.", report_paragraph_style))
-
-    elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 15))
 
     table = Table(
         table_data,
@@ -398,15 +428,9 @@ def convert_csv_to_pdf(csv_bytes: bytes) -> bytes:
         repeatRows=1,
     )
 
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), "#b89fe3"),
-        ("LINEBELOW", (0,1), (-1,-1), 0.5, colors.grey, None, [2, 2]),
-        ("FONT", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-    ]))
+    table.setStyle(flagged_transactions_table_style)
 
-    elements.append(table)
+    elements.append(KeepTogether([Paragraph("Final Harmonized Flagged Transactions", section_header_style),Paragraph("Fraudulent transactions are organized by review priority.", report_paragraph_style),Spacer(1, 10),table]))
 
     doc.build(elements)
 
