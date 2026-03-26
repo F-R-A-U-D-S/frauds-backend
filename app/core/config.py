@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     S3_BUCKET: str = "capstone-secure-uploads"
     KMS_KEY_ID: str = "arn:aws:kms:us-east-1:132121094135:key/b151ad6a-5680-4372-9e2c-9edc2962f653"
 
-    FRONTEND_BASE_URL: str = "https://frauds.online"
+    FRONTEND_BASE_URL: str = "https://fraudsapp.online"
     
 
 
