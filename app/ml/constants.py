@@ -42,7 +42,7 @@ RULE_WEIGHTS: dict[str, float] = {
     "rule_dormant_spike": 0.15,
     "rule_online_rare_spike": 0.15,
     "rule_high_velocity": 0.15,
-    "rule_rare_mcc": 0.10,
+    # "rule_rare_mcc": 0.10,
 }
 
 RULE_TEXT: dict[str, str] = {
@@ -51,7 +51,7 @@ RULE_TEXT: dict[str, str] = {
     "rule_dormant_spike": "Dormant merchant + amount spike",
     "rule_online_rare_spike": "Online + rare merchant + unusually high amount",
     "rule_high_velocity": "High velocity (3+ txns in 10 minutes)",
-    "rule_rare_mcc": "Rare merchant category (MCC) for this account",
+    # "rule_rare_mcc": "Rare merchant category (MCC) for this account",
 }
 
 TRANSLATION_MAP: dict[str, str] = {
