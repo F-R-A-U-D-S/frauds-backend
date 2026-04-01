@@ -63,7 +63,7 @@ def apply_rule_logic(df: pd.DataFrame) -> pd.DataFrame:
     dormant_days = max(dormant_days, 30.0)
 
     rare_merchant_thr = float(df["merchant_freq"].quantile(0.10))
-    rare_mcc_thr = float(df["mcc_freq"].quantile(0.10))
+    # rare_mcc_thr = float(df["mcc_freq"].quantile(0.10))
 
     df["rule_geo_jump"] = (
         (df["country"] != df["prev_country"]) &
@@ -87,7 +87,7 @@ def apply_rule_logic(df: pd.DataFrame) -> pd.DataFrame:
     ).astype(int)
 
     df["rule_high_velocity"] = (df["txn_count_10m"] >= 3).astype(int)
-    df["rule_rare_mcc"] = (df["mcc_freq"] <= rare_mcc_thr).astype(int)
+    # df["rule_rare_mcc"] = (df["mcc_freq"] <= rare_mcc_thr).astype(int)
 
     df["rule_risk_raw"] = 0.0
     for column, weight in RULE_WEIGHTS.items():
